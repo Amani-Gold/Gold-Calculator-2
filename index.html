@@ -3,93 +3,161 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>حاسبة المصنعية من السعر النهائي — Amani Alderazi</title>
+  <title>حاسبة استخراج المصنعية — Amani Alderazi</title>
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0; background:#f6f7fb; color:#111}
-    .wrap{max-width:680px; margin:24px auto; padding:16px}
+    .wrap{max-width:700px; margin:24px auto; padding:16px}
     .card{background:#fff; border:1px solid #e8e8ef; border-radius:14px; padding:18px; box-shadow:0 6px 18px rgba(0,0,0,.04)}
     h1{margin:0 0 8px; font-size:20px}
-    .sub{margin:0 0 18px; color:#666; font-size:13px}
+    .sub{margin:0 0 18px; color:#666; font-size:13px; line-height:1.6}
     label{display:block; font-size:13px; color:#333; margin:12px 0 6px}
     input{
       width:100%; padding:12px 12px; border:1px solid #ddd; border-radius:10px;
       font-size:16px; outline:none; box-sizing:border-box
     }
+    input:focus{border-color:#6b7cff}
     .row{display:grid; gap:12px}
-    @media(min-width:640px){ .row{grid-template-columns:1fr 1fr 1fr} }
+    @media(min-width:700px){ .row{grid-template-columns:1fr 1fr 1fr} }
     .result{margin-top:16px; padding:14px; border-radius:12px; background:#f4f6ff; border:1px solid #dfe4ff}
+    .result div{display:flex; justify-content:space-between; gap:10px; padding:6px 0}
     .result .big{font-weight:800; font-size:20px}
     .muted{color:#666; font-size:12px; margin-top:10px}
+    .btns{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+    button{border:0; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:14px}
+    .primary{background:#111; color:#fff}
+    .ghost{background:#fff; border:1px solid #ddd}
     .footer{margin-top:14px; font-size:12px; color:#666}
+    .name{font-weight:700}
+    .warn{margin-top:10px; font-size:12px; color:#8a5b00}
   </style>
 </head>
 
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>حاسبة استخراج المصنعية</h1>
+      <h1>حاسبة استخراج المصنعية (لكل غرام)</h1>
       <p class="sub">
-        تدخل السعر النهائي ونحسب لك المصنعية لكل غرام<br>
-        المعادلة: المصنعية = (السعر النهائي ÷ 1.1 ÷ الغرامات) − سعر الذهب
+        <strong>المعادلة:</strong><br>
+        بدون ضريبة = السعر النهائي ÷ 1.1<br>
+        سعر الذهب بدون مصنعية = سعر الذهب اليوم × الوزن<br>
+        المصنعية لكل غرام = (بدون ضريبة − سعر الذهب بدون مصنعية) ÷ الوزن
       </p>
 
       <div class="row">
         <div>
-          <label>السعر النهائي (مع الضريبة)</label>
-          <input id="finalPrice" type="number" step="0.01" placeholder="مثال: 350" />
+          <label for="finalPrice">السعر النهائي (مع الضريبة)</label>
+          <input id="finalPrice" type="number" inputmode="decimal" step="0.01" placeholder="مثال: 350" />
         </div>
 
         <div>
-          <label>الغرامات</label>
-          <input id="grams" type="number" step="0.01" placeholder="مثال: 10" />
+          <label for="grams">الوزن (غرام)</label>
+          <input id="grams" type="number" inputmode="decimal" step="0.01" placeholder="مثال: 10" />
         </div>
 
         <div>
-          <label>سعر الذهب اليوم للغرام</label>
-          <input id="goldPrice" type="number" step="0.01" placeholder="مثال: 25" />
+          <label for="goldPrice">سعر الذهب اليوم (لكل غرام)</label>
+          <input id="goldPrice" type="number" inputmode="decimal" step="0.01" placeholder="مثال: 25" />
         </div>
       </div>
 
-      <div class="result">
-        <div class="big">
-          المصنعية لكل غرام = <span id="manufacture">—</span>
-        </div>
+      <div class="result" aria-live="polite">
+        <div><span>السعر بدون ضريبة</span><strong id="noVat">—</strong></div>
+        <div><span>سعر الذهب بدون مصنعية</span><strong id="goldNoManu">—</strong></div>
+        <div class="big"><span>المصنعية لكل غرام</span><strong id="manufacture">—</strong></div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="copyBtn">نسخ النتيجة</button>
+        <button class="ghost" id="resetBtn">مسح</button>
       </div>
 
       <div class="footer">
-        إعداد: <strong>Amani Alderazi</strong>
+        إعداد: <span class="name">Amani Alderazi</span>
       </div>
       <div class="muted">النتيجة تقديرية وقد تختلف حسب المحل.</div>
+      <div class="warn" id="warn"></div>
     </div>
   </div>
 
-<script>
-  const finalPrice = document.getElementById("finalPrice");
-  const grams = document.getElementById("grams");
-  const goldPrice = document.getElementById("goldPrice");
-  const manufactureEl = document.getElementById("manufacture");
+  <script>
+    const finalPrice = document.getElementById("finalPrice");
+    const grams = document.getElementById("grams");
+    const goldPrice = document.getElementById("goldPrice");
 
-  function format(n){
-    return n.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:3});
-  }
+    const noVatEl = document.getElementById("noVat");
+    const goldNoManuEl = document.getElementById("goldNoManu");
+    const manuEl = document.getElementById("manufacture");
+    const warnEl = document.getElementById("warn");
 
-  function calc(){
-    const f = Number(finalPrice.value) || 0;
-    const g = Number(grams.value) || 0;
-    const p = Number(goldPrice.value) || 0;
+    const copyBtn = document.getElementById("copyBtn");
+    const resetBtn = document.getElementById("resetBtn");
 
-    if(f===0 || g===0 || p===0){
-      manufactureEl.textContent = "—";
-      return;
+    function toNum(v){ return Number(String(v).replace(",", ".")) || 0; }
+
+    // English numbers (123.45)
+    function format(n){
+      return n.toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:3});
     }
 
-    const noVat = f / 1.1;
-    const manufacture = (noVat / g) - p;
+    function calc(){
+      const f = toNum(finalPrice.value);
+      const g = toNum(grams.value);
+      const p = toNum(goldPrice.value);
 
-    manufactureEl.textContent = format(manufacture);
-  }
+      warnEl.textContent = "";
 
-  [finalPrice, grams, goldPrice].forEach(i => i.addEventListener("input", calc));
-</script>
+      if(f <= 0 || g <= 0 || p <= 0){
+        noVatEl.textContent = "—";
+        goldNoManuEl.textContent = "—";
+        manuEl.textContent = "—";
+        return;
+      }
+
+      // بدون ضريبة = السعر النهائي ÷ 1.1
+      const noVat = f / 1.1;
+
+      // سعر الذهب بدون مصنعية = سعر الذهب اليوم × الوزن
+      const goldNoManu = p * g;
+
+      // المصنعية لكل غرام = (بدون ضريبة − سعر الذهب بدون مصنعية) ÷ الوزن
+      const manufacturePerGram = (noVat - goldNoManu) / g;
+
+      noVatEl.textContent = format(noVat);
+      goldNoManuEl.textContent = format(goldNoManu);
+      manuEl.textContent = format(manufacturePerGram);
+
+      if(manufacturePerGram < 0){
+        warnEl.textContent = "تنبيه: المصنعية طلعت بالسالب — تأكد من السعر النهائي/سعر الذهب/الوزن.";
+      }
+    }
+
+    [finalPrice, grams, goldPrice].forEach(i => i.addEventListener("input", calc));
+    calc();
+
+    copyBtn.addEventListener("click", async () => {
+      const text =
+`Final price (with VAT): ${finalPrice.value || 0}
+Weight (g): ${grams.value || 0}
+Gold price/g: ${goldPrice.value || 0}
+No VAT: ${noVatEl.textContent}
+Gold (no manufacture): ${goldNoManuEl.textContent}
+Manufacture per gram: ${manuEl.textContent}`;
+      try{
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = "Copied ✅";
+        setTimeout(()=> copyBtn.textContent="نسخ النتيجة", 1200);
+      }catch(e){
+        alert("ما قدرت أنسخ تلقائياً. انسخ يدويًا من الشاشة.");
+      }
+    });
+
+    resetBtn.addEventListener("click", () => {
+      finalPrice.value = "";
+      grams.value = "";
+      goldPrice.value = "";
+      calc();
+      finalPrice.focus();
+    });
+  </script>
 </body>
 </html>
