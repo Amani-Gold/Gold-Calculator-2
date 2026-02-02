@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>حاسبة الذهب — Husain Hubail</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:0; background:#f6f7fb; color:#111}
+    .wrap{max-width:680px; margin:24px auto; padding:16px}
+    .card{background:#fff; border:1px solid #e8e8ef; border-radius:14px; padding:18px; box-shadow:0 6px 18px rgba(0,0,0,.04)}
+    h1{margin:0 0 8px; font-size:20px}
+    .sub{margin:0 0 18px; color:#666; font-size:13px}
+    label{display:block; font-size:13px; color:#333; margin:12px 0 6px}
+    input{
+      width:100%; padding:12px 12px; border:1px solid #ddd; border-radius:10px;
+      font-size:16px; outline:none; box-sizing:border-box
+    }
+    input:focus{border-color:#6b7cff}
+    .row{display:grid; gap:12px}
+    @media(min-width:640px){ .row{grid-template-columns:1fr 1fr 1fr} }
+    .result{margin-top:16px; padding:14px; border-radius:12px; background:#f4f6ff; border:1px solid #dfe4ff}
+    .result div{display:flex; justify-content:space-between; gap:10px; padding:6px 0}
+    .result .big{font-weight:800; font-size:18px}
+    .muted{color:#666; font-size:12px; margin-top:10px}
+    .btns{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+    button{
+      border:0; border-radius:10px; padding:10px 12px; cursor:pointer; font-size:14px
+    }
+    .primary{background:#111; color:#fff}
+    .ghost{background:#fff; border:1px solid #ddd}
+    .footer{margin-top:14px; font-size:12px; color:#666}
+    .name{font-weight:700}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>حاسبة سعر الذهب</h1>
+      <p class="sub">المعادلة: (الغرامات × المصنعية) + (الغرامات × سعر الذهب اليوم) = السعر بدون ضريبة، ثم × 1.1 = السعر مع الضريبة</p>
+
+      <div class="row">
+        <div>
+          <label for="grams">الغرامات (g)</label>
+          <input id="grams" type="number" inputmode="decimal" min="0" step="0.01" placeholder="مثال: 10" />
+        </div>
+
+        <div>
+          <label for="manufacture">المصنعية لكل غرام</label>
+          <input id="manufacture" type="number" inputmode="decimal" min="0" step="0.01" placeholder="مثال: 3.5" />
+        </div>
+
+        <div>
+          <label for="goldPrice">سعر الذهب اليوم لكل غرام</label>
+          <input id="goldPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="مثال: 25.2" />
+        </div>
+      </div>
+
+      <div class="result" aria-live="polite">
+        <div><span>السعر بدون ضريبة</span><strong id="noVat">—</strong></div>
+        <div><span>الضريبة (10%)</span><strong id="vat">—</strong></div>
+        <div class="big"><span>السعر النهائي</span><strong id="final">—</strong></div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="copyBtn">نسخ النتيجة</button>
+        <button class="ghost" id="resetBtn">مسح</button>
+      </div>
+
+      <div class="footer">
+        إعداد: <span class="name">Husain Hubail</span>
+      </div>
+      <div class="muted">ملاحظة: هذه الحاسبة تقديرية — الأسعار قد تختلف حسب المحل.</div>
+    </div>
+  </div>
+
+  <script>
+    const grams = document.getElementById('grams');
+    const manufacture = document.getElementById('manufacture');
+    const goldPrice = document.getElementById('goldPrice');
+
+    const noVatEl = document.getElementById('noVat');
+    const vatEl = document.getElementById('vat');
+    const finalEl = document.getElementById('final');
+
+    const copyBtn = document.getElementById('copyBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const VAT_MULTIPLIER = 1.1; // × 1.1
+    const VAT_RATE = 0.10;      // 10%
+
+    function toNum(v){ return Number(String(v).replace(',', '.')) || 0; }
+
+    function format(n){
+      return n.toLocaleString('ar-BH', { minimumFractionDigits: 2, maximumFractionDigits: 3 });
+    }
+
+    function calc(){
+      const g = toNum(grams.value);
+      const m = toNum(manufacture.value);
+      const p = toNum(goldPrice.value);
+
+      const noVat = (g * m) + (g * p);
+      const final = noVat * VAT_MULTIPLIER;
+      const vat = final - noVat;
+
+      if(g === 0 && m === 0 && p === 0){
+        noVatEl.textContent = '—';
+        vatEl.textContent = '—';
+        finalEl.textContent = '—';
+        return;
+      }
+
+      noVatEl.textContent = format(noVat);
+      vatEl.textContent = format(vat);
+      finalEl.textContent = format(final);
+    }
+
+    [grams, manufacture, goldPrice].forEach(inp => inp.addEventListener('input', calc));
+    calc();
+
+    copyBtn.addEventListener('click', async () => {
+      const text = `الغرامات: ${grams.value || 0}
+المصنعية/غرام: ${manufacture.value || 0}
+سعر الذهب/غرام: ${goldPrice.value || 0}
+السعر بدون ضريبة: ${noVatEl.textContent}
+الضريبة (10%): ${vatEl.textContent}
+السعر النهائي: ${finalEl.textContent}`;
+      try{
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'تم النسخ ✅';
+        setTimeout(()=> copyBtn.textContent='نسخ النتيجة', 1200);
+      }catch(e){
+        alert('ما قدرت أنسخ تلقائياً. انسخ يدويًا من الشاشة.');
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      grams.value = '';
+      manufacture.value = '';
+      goldPrice.value = '';
+      calc();
+      grams.focus();
+    });
+  </script>
+</body>
+</html>
